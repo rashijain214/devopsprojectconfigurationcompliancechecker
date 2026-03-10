@@ -165,6 +165,6 @@ The pipeline **exits with code 1** if any CRITICAL compliance violation is found
 - Open-source reference: Checkov, Trivy, kube-score
 
 ## Contact
-Student: Rashi Jain
-Email:rashi.23fe10cse00411@muj.manipal.edu
-Course Coordinator: Mr. Jay Shankar Sharma — Thursday & Friday, 5–6 PM, LHC 308F
+- Student: Rashi Jain
+- Email:rashi.23fe10cse00411@muj.manipal.edu
+- Course Coordinator: Mr. Jay Shankar Sharma — Thursday & Friday, 5–6 PM, LHC 308F
