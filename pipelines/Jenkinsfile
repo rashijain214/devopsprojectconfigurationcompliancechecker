@@ -1,0 +1,113 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Branch to build')
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Target environment')
+    }
+
+    environment {
+        APP_NAME   = 'compliance-checker'
+        VERSION    = "${env.BUILD_ID}"
+        REPORT_DIR = 'reports'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: "${params.BRANCH}",
+                    url: 'https://github.com/username/devopsprojectcompliancechecker.git'
+            }
+        }
+
+        stage('Code Quality') {
+            steps {
+                sh 'pip install pylint --quiet'
+                sh 'pylint src/main/python/compliance_checker.py --exit-zero'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'pip install -r requirements.txt --quiet'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'pip install pytest pytest-cov --quiet'
+                sh 'pytest tests/unit/ -v --junitxml=test-results/junit.xml --cov=src/main/python --cov-report=xml'
+            }
+            post {
+                always {
+                    junit 'test-results/junit.xml'
+                }
+            }
+        }
+
+        stage('Self-Compliance Check') {
+            steps {
+                sh 'mkdir -p ${REPORT_DIR}'
+                sh """
+                    python src/main/python/compliance_checker.py \
+                        infrastructure/docker/Dockerfile \
+                        infrastructure/docker/docker-compose.yml \
+                        infrastructure/kubernetes/deployment.yaml \
+                        pipelines/Jenkinsfile \
+                        --output ${REPORT_DIR}/compliance-report.json
+                """
+                sh 'cat ${REPORT_DIR}/compliance-report.json'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -f infrastructure/docker/Dockerfile -t ${APP_NAME}:${VERSION} ."
+                sh "docker tag ${APP_NAME}:${VERSION} ${APP_NAME}:latest"
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${APP_NAME}:${VERSION} || true"
+            }
+        }
+
+        stage('Deploy to Staging') {
+            when {
+                expression { params.ENVIRONMENT == 'staging' }
+            }
+            steps {
+                sh "docker-compose -f infrastructure/docker/docker-compose.yml up -d"
+            }
+        }
+
+        stage('Deploy to Production') {
+            when {
+                expression { params.ENVIRONMENT == 'prod' }
+            }
+            steps {
+                input message: 'Deploy to production?', ok: 'Deploy'
+                sh "kubectl apply -f infrastructure/kubernetes/"
+            }
+        }
+    }
+
+    post {
+        success {
+            archiveArtifacts artifacts: 'reports/*.json', fingerprint: true
+            emailext(
+                subject: "Pipeline Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: "Build passed.\n\nURL: ${env.BUILD_URL}",
+                to: 'student@university.edu'
+            )
+        }
+        failure {
+            emailext(
+                subject: "Pipeline Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: "Build failed. Check logs at: ${env.BUILD_URL}",
+                to: 'student@university.edu'
+            )
+        }
+    }
+}

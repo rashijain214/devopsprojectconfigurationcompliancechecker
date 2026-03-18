@@ -1,0 +1,28 @@
+# Puppet-managed Nagios command definitions
+
+# Check HTTP with custom port
+define command {
+  command_name  check_http
+  command_line  /usr/lib/nagios/plugins/check_http -H $HOSTADDRESS$ $ARG1$
+}
+
+# Check disk
+define command {
+  command_name  check_disk
+  command_line  /usr/lib/nagios/plugins/check_disk $ARG1$ $ARG2$ -p /
+}
+
+# Check compliance report file freshness (must be < 2 hours old)
+define command {
+  command_name  check_compliance_report
+  command_line  /usr/lib/nagios/plugins/check_file_age \
+                -f /var/reports/compliance-checker/ \
+                -w 3600 -c 7200
+}
+
+# NRPE for remote checks
+define command {
+  command_name  check_nrpe
+  command_line  /usr/lib/nagios/plugins/check_nrpe \
+                -H $HOSTADDRESS$ -c $ARG1$
+}

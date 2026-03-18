@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  compliance-checker:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
+    image: compliance-checker:1.0.0
+    restart: unless-stopped
+    volumes:
+      - ./configs:/app/configs:ro
+      - ./reports:/app/reports
+    environment:
+      - APP_ENV=production
+      - LOG_LEVEL=INFO
+    command: >
+      python src/main/python/compliance_checker.py
+      configs/Dockerfile
+      configs/docker-compose.yml
+      configs/deployment.yaml
+      --output reports/report.json
+
+  dashboard:
+    image: nginx:1.25-alpine
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./reports:/usr/share/nginx/html/reports:ro
+
+volumes:
+  reports:

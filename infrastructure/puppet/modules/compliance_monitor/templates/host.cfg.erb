@@ -1,0 +1,22 @@
+# Puppet-managed Nagios host definition
+# Monitors the compliance checker application host
+
+define host {
+  use                   linux-server
+  host_name             compliance-checker-host
+  alias                 Configuration Compliance Checker
+  address               127.0.0.1
+  max_check_attempts    3
+  check_period          24x7
+  notification_interval 30
+  notification_period   24x7
+  notifications_enabled 1
+  check_command         check-host-alive
+  contact_groups        compliance-admins
+}
+
+define hostgroup {
+  hostgroup_name  compliance-servers
+  alias           Compliance Checker Servers
+  members         compliance-checker-host
+}

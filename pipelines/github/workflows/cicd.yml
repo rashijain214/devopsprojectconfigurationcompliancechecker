@@ -1,0 +1,91 @@
+name: CI/CD - Compliance Checker
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest pytest-cov pylint
+
+      - name: Lint
+        run: pylint src/main/python/compliance_checker.py --exit-zero
+
+      - name: Run unit tests
+        run: pytest tests/unit/ -v --junitxml=test-results/junit.xml --cov=src/main/python
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results
+          path: test-results/
+
+  self-compliance:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run compliance check on own infrastructure
+        run: |
+          mkdir -p reports
+          python src/main/python/compliance_checker.py \
+            infrastructure/docker/Dockerfile \
+            infrastructure/docker/docker-compose.yml \
+            infrastructure/kubernetes/deployment.yaml \
+            pipelines/Jenkinsfile \
+            --output reports/self-compliance.json
+
+      - name: Upload compliance report
+        uses: actions/upload-artifact@v3
+        with:
+          name: compliance-report
+          path: reports/
+
+  build-docker:
+    runs-on: ubuntu-latest
+    needs: self-compliance
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: docker build -f infrastructure/docker/Dockerfile -t compliance-checker:${{ github.run_id }} .
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: compliance-checker:${{ github.run_id }}
+          format: table
+          exit-code: 0
+          severity: HIGH,CRITICAL
+```
+
+---
+
+## 📄 FILE 8: `requirements.txt`
+```
+pyyaml>=6.0
+pytest>=7.0
+pytest-cov>=4.0
+pylint>=2.17

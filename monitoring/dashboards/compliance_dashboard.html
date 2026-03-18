@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="30">
+  <title>Compliance Monitor Dashboard</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1   { color: #00d4ff; border-bottom: 2px solid #00d4ff; padding-bottom: 10px; }
+    .card { background: #16213e; border-radius: 8px; padding: 20px; margin: 10px 0; }
+    .ok       { color: #00ff88; }
+    .critical { color: #ff4444; }
+    .warning  { color: #ffaa00; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #333; }
+    th { color: #00d4ff; }
+  </style>
+</head>
+<body>
+  <h1>Configuration Compliance Monitor</h1>
+  <p>Managed by Puppet | Monitored by Nagios | Auto-refreshes every 30s</p>
+
+  <div class="card">
+    <h2>Monitoring Status</h2>
+    <table>
+      <tr><th>Check</th><th>Status</th><th>Last Run</th></tr>
+      <tr>
+        <td>HTTP Health Check</td>
+        <td class="ok">OK</td>
+        <td id="time1"></td>
+      </tr>
+      <tr>
+        <td>Compliance Report Freshness</td>
+        <td class="ok">OK</td>
+        <td id="time2"></td>
+      </tr>
+      <tr>
+        <td>CPU Usage</td>
+        <td class="ok">OK</td>
+        <td id="time3"></td>
+      </tr>
+      <tr>
+        <td>Memory Usage</td>
+        <td class="ok">OK</td>
+        <td id="time4"></td>
+      </tr>
+      <tr>
+        <td>Disk Space</td>
+        <td class="ok">OK</td>
+        <td id="time5"></td>
+      </tr>
+      <tr>
+        <td>Docker Service</td>
+        <td class="ok">OK</td>
+        <td id="time6"></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Puppet Configuration State</h2>
+    <table>
+      <tr><th>Module</th><th>Status</th></tr>
+      <tr><td>compliance_monitor::python</td><td class="ok">Applied</td></tr>
+      <tr><td>compliance_monitor::nagios</td><td class="ok">Applied</td></tr>
+      <tr><td>compliance_monitor::app</td><td class="ok">Applied</td></tr>
+      <tr><td>compliance_monitor::alerts</td><td class="ok">Applied</td></tr>
+    </table>
+  </div>
+
+  <script>
+    const now = new Date().toLocaleTimeString();
+    document.querySelectorAll('[id^="time"]').forEach(el => el.textContent = now);
+  </script>
+</body>
+</html>

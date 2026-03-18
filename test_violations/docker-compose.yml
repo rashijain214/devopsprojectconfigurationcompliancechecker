@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  web:
+    image: nginx:latest
+    environment:
+      - DATABASE_PASSWORD=secret123
+      - API_KEY=abc123
+    ports:
+      - "80:80"

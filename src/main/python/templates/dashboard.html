@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="30">
+  <title>Real Compliance Monitor Dashboard</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1   { color: #00d4ff; border-bottom: 2px solid #00d4ff; padding-bottom: 10px; }
+    .card { background: #16213e; border-radius: 8px; padding: 20px; margin: 10px 0; }
+    .ok       { color: #00ff88; }
+    .critical { color: #ff4444; }
+    .warning  { color: #ffaa00; }
+    .high     { color: #ff8800; }
+    .medium   { color: #ffcc00; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #333; }
+    th { color: #00d4ff; }
+    .status-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+    .compliant { background: #00ff8820; color: #00ff88; }
+    .non-compliant { background: #ff444420; color: #ff4444; }
+    .loading { color: #ffaa00; }
+    .error { color: #ff4444; }
+    .violation-item { margin: 8px 0; padding: 8px; background: #0f3460; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Configuration Compliance Monitor</h1>
+  <p>Real-time monitoring | Auto-refreshes every 30s</p>
+
+  <div class="card">
+    <h2>Compliance Status</h2>
+    <div id="compliance-status">
+      <div class="loading">Loading compliance data...</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>System Health</h2>
+    <table>
+      <tr><th>Check</th><th>Status</th><th>Last Run</th></tr>
+      <tr>
+        <td>API Health Check</td>
+        <td id="api-status" class="loading">Checking...</td>
+        <td id="api-time"></td>
+      </tr>
+      <tr>
+        <td>Compliance Report Freshness</td>
+        <td id="report-status" class="loading">Checking...</td>
+        <td id="report-time"></td>
+      </tr>
+      <tr>
+        <td>CPU Usage</td>
+        <td class="ok">OK</td>
+        <td id="time3"></td>
+      </tr>
+      <tr>
+        <td>Memory Usage</td>
+        <td class="ok">OK</td>
+        <td id="time4"></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Recent Violations</h2>
+    <div id="violations-list">
+      <div class="loading">Loading violations...</div>
+    </div>
+  </div>
+
+  <script>
+    function updateTime() {
+      const now = new Date().toLocaleTimeString();
+      document.querySelectorAll('[id^="time"]').forEach(el => el.textContent = now);
+    }
+
+    async function fetchComplianceData() {
+      try {
+        const response = await fetch('/api/compliance');
+        const data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        updateComplianceStatus(data);
+        updateViolationsList(data);
+        
+        document.getElementById('report-status').className = 'ok';
+        document.getElementById('report-status').textContent = 'OK';
+        document.getElementById('report-time').textContent = new Date().toLocaleTimeString();
+        
+      } catch (error) {
+        console.error('Error fetching compliance data:', error);
+        document.getElementById('compliance-status').innerHTML = 
+          `<div class="error">Error: ${error.message}</div>`;
+        document.getElementById('report-status').className = 'critical';
+        document.getElementById('report-status').textContent = 'ERROR';
+      }
+    }
+
+    function updateComplianceStatus(data) {
+      const summary = data.summary || {};
+      const statusClass = summary.status === 'COMPLIANT' ? 'compliant' : 'non-compliant';
+      
+      document.getElementById('compliance-status').innerHTML = `
+        <div class="status-badge ${statusClass}">
+          Status: ${summary.status || 'UNKNOWN'}
+        </div>
+        <p>Critical Issues: ${summary.critical_issues || 0}</p>
+        <p>Total Violations: ${summary.total_violations || 0}</p>
+        <p>Last Updated: ${new Date(data.timestamp || Date.now()).toLocaleString()}</p>
+      `;
+    }
+
+    function updateViolationsList(data) {
+      const violations = data.violations || [];
+      
+      if (violations.length === 0) {
+        document.getElementById('violations-list').innerHTML = 
+          '<div class="ok">No violations detected</div>';
+        return;
+      }
+      
+      const violationsHtml = violations.map(v => `
+        <div class="violation-item">
+          <span class="${v.severity.toLowerCase()}">[${v.severity}]</span>
+          <span>${v.message}</span>
+        </div>
+      `).join('');
+      
+      document.getElementById('violations-list').innerHTML = violationsHtml;
+    }
+
+    async function checkApiHealth() {
+      try {
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        
+        document.getElementById('api-status').className = 'ok';
+        document.getElementById('api-status').textContent = data.status || 'OK';
+        document.getElementById('api-time').textContent = new Date().toLocaleTimeString();
+      } catch (error) {
+        document.getElementById('api-status').className = 'critical';
+        document.getElementById('api-status').textContent = 'ERROR';
+      }
+    }
+
+    // Initial load
+    updateTime();
+    fetchComplianceData();
+    checkApiHealth();
+
+    // Refresh every 30 seconds
+    setInterval(() => {
+      updateTime();
+      fetchComplianceData();
+      checkApiHealth();
+    }, 30000);
+  </script>
+</body>
+</html>

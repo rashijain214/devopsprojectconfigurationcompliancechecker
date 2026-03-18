@@ -1,0 +1,80 @@
+# Puppet-managed Nagios service definitions
+# Monitors all aspects of the compliance checker
+
+# ── Check HTTP endpoint is up ────────────────────────────────
+define service {
+  use                   generic-service
+  host_name             compliance-checker-host
+  service_description   HTTP Health Check
+  check_command         check_http!-p 8080 -u /health
+  max_check_attempts    3
+  check_interval        5
+  retry_interval        1
+  notification_interval 30
+  contact_groups        compliance-admins
+}
+
+# ── Check CPU usage ──────────────────────────────────────────
+define service {
+  use                   generic-service
+  host_name             compliance-checker-host
+  service_description   CPU Usage
+  check_command         check_nrpe!check_cpu
+  max_check_attempts    3
+  check_interval        5
+  retry_interval        1
+  notification_interval 60
+  contact_groups        compliance-admins
+}
+
+# ── Check memory usage ───────────────────────────────────────
+define service {
+  use                   generic-service
+  host_name             compliance-checker-host
+  service_description   Memory Usage
+  check_command         check_nrpe!check_mem
+  max_check_attempts    3
+  check_interval        5
+  retry_interval        1
+  notification_interval 60
+  contact_groups        compliance-admins
+}
+
+# ── Check disk space ─────────────────────────────────────────
+define service {
+  use                   generic-service
+  host_name             compliance-checker-host
+  service_description   Disk Space
+  check_command         check_disk!-w 20% -c 10%
+  max_check_attempts    3
+  check_interval        10
+  retry_interval        2
+  notification_interval 60
+  contact_groups        compliance-admins
+}
+
+# ── Check compliance report is being generated ───────────────
+define service {
+  use                   generic-service
+  host_name             compliance-checker-host
+  service_description   Compliance Report Freshness
+  check_command         check_compliance_report
+  max_check_attempts    2
+  check_interval        60
+  retry_interval        5
+  notification_interval 30
+  contact_groups        compliance-admins
+}
+
+# ── Check Docker is running ──────────────────────────────────
+define service {
+  use                   generic-service
+  host_name             compliance-checker-host
+  service_description   Docker Service
+  check_command         check_nrpe!check_docker
+  max_check_attempts    3
+  check_interval        5
+  retry_interval        1
+  notification_interval 30
+  contact_groups        compliance-admins
+}

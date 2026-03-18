@@ -1,0 +1,20 @@
+# Puppet-managed Nagios contacts
+
+define contact {
+  contact_name                    student-admin
+  use                             generic-contact
+  alias                           Student Admin
+  email                           student@university.edu
+  service_notification_period     24x7
+  host_notification_period        24x7
+  service_notification_options    w,u,c,r
+  host_notification_options       d,u,r
+  service_notification_commands   notify-service-by-email
+  host_notification_commands      notify-host-by-email
+}
+
+define contactgroup {
+  contactgroup_name  compliance-admins
+  alias              Compliance Checker Administrators
+  members            student-admin
+}
